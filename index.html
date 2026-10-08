@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CASE FILE: ELHAM</title>
+    <style>
+        /* ================= پایه و متغیرها ================= */
+        :root {
+            --bg-1: radial-gradient(circle at 50% 50%, #0f1525, #020306 100%);
+            --bg-2: radial-gradient(circle at 50% 50%, #12182b, #03050a 100%);
+            --bg-3: radial-gradient(circle at 50% 50%, #161b2e, #040810 100%);
+            --bg-4: radial-gradient(circle at 50% 50%, #191c33, #05080e 100%);
+            --bg-5: radial-gradient(circle at 50% 50%, #171828, #040508 100%);
+            --bg-6: radial-gradient(circle at 50% 50%, #14141f, #030305 100%);
+            --bg-7: radial-gradient(circle at 50% 50%, #100f14, #020202 100%);
+            --bg-8: #050505;
+            --bg-9: #020202;
+            --bg-10: #000000;
+            --bg-11: #000000;
+            --bg-12: #000000;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Vazirmatn', 'Vazir', system-ui, -apple-system, sans-serif;
+            background: var(--bg-1);
+            color: #e2e8f0;
+            height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            transition: background 2s ease-in-out;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        * { box-sizing: border-box; }
+
+        /* ================= افکت‌های پس‌زمینه (آسمان، شفق، پاییز و قلب) ================= */
+        #bg-effects {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+        }
+
+        .aurora {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 40%, rgba(217, 119, 6, 0.05), transparent 40%),
+                        radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.05), rgba(56, 189, 248, 0.03), transparent 50%);
+            filter: blur(60px);
+            animation: auroraMove 25s infinite alternate linear;
+        }
+
+        @keyframes auroraMove {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-5%, 5%) rotate(5deg); }
+        }
+
+        .star {
+            position: absolute; background: #fff; border-radius: 50%;
+            animation: twinkle infinite ease-in-out alternate;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.1; transform: scale(0.8); }
+            100% { opacity: 0.9; transform: scale(1.2); }
+        }
+
+        .leaf {
+            position: absolute; top: -10%;
+            font-size: 1.2rem; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+            animation: fall linear forwards; opacity: 0.6;
+        }
+        @keyframes fall {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(var(--end-x), 110vh) rotate(var(--end-rot)); }
+        }
+
+        /* ================= ساختار سکانس‌ها (Sections) ================= */
+        .scene {
+            position: absolute; inset: 0; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; z-index: 10;
+            transition: opacity 1.5s ease-in-out, visibility 1.5s;
+            padding: 20px;
+        }
+        .scene.active { opacity: 1; visibility: visible; }
+        
+        .container {
+            width: 100%; max-width: 480px; 
+            max-height: 90dvh; overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .container::-webkit-scrollbar { display: none; }
+
+        .ui-card {
+            background: rgba(15, 25, 40, 0.4);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px; padding: 30px;
+            text-align: right; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            transition: all 2s ease;
+        }
+
+        .mono-tag { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.75rem; color: #64748b; letter-spacing: 1px; display: block; margin-bottom: 10px; }
+        .type-text { font-size: 1rem; line-height: 2.1; color: #cbd5e1; white-space: pre-wrap; min-height: 20px; }
+        .center-text { text-align: center; }
+        
+        .btn-next {
+            background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 20px; border-radius: 8px; width: 100%; font-family: inherit; font-size: 0.9rem;
+            cursor: pointer; margin-top: 35px; transition: 0.4s; opacity: 0; display: none;
+        }
+        .btn-next.show { display: block; animation: fadeIn 1.5s ease forwards; }
+        .btn-next:hover { background: rgba(255,255,255,0.05); color: #fff; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= 1. اسکنر ================= */
+        .scanner-wrap { margin-top: 40px; text-align: center; cursor: pointer; touch-action: none; outline: none; }
+        .scanner-icon {
+            width: 70px; height: 70px; margin: 0 auto 15px; border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; transition: 0.3s;
+        }
+        .scanner-active .scanner-icon { border-color: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
+        .progress-bar { width: 180px; height: 2px; background: rgba(255,255,255,0.1); margin: 0 auto; position: relative; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: #38bdf8; position: absolute; left: 0; top: 0; transition: 0.1s linear; }
+
+        /* ================= 3. مسافت ================= */
+        .distance-display { font-family: 'Courier New', monospace; font-size: 3rem; color: #e2e8f0; font-weight: 300; margin: 30px 0; letter-spacing: 2px; }
+
+        /* ================= 5. خاطره مبارکه و افکت خنده ================= */
+        .mobarakeh-wrapper { position: relative; display: inline-block; margin: 20px 0 40px; }
+        .mobarakeh-visual {
+            font-size: 2.5rem; font-weight: bold; color: rgba(255, 255, 255, 0.9);
+            text-align: center; letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1); opacity: 0;
+        }
+        
+        .laugh-emoji {
+            position: absolute; opacity: 0; font-size: 1.5rem; pointer-events: none; transition: opacity 1s;
+        }
+        .laugh-active .l1 { top: -25px; left: -25px; animation: floatLaugh 2s infinite alternate ease-in-out; opacity: 0.8; }
+        .laugh-active .l2 { bottom: -15px; right: -30px; animation: floatLaugh 2.5s infinite alternate ease-in-out 0.5s; opacity: 0.7; font-size: 1.2rem; }
+        .laugh-active .l3 { top: 15px; right: -40px; animation: floatLaugh 3s infinite alternate ease-in-out 1s; opacity: 0.9; font-size: 1.7rem; }
+        .laugh-active .l4 { bottom: -25px; left: 10px; animation: floatLaugh 2.2s infinite alternate ease-in-out 0.8s; opacity: 0.6; font-size: 1.3rem; }
+
+        @keyframes floatLaugh {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            100% { transform: translateY(-15px) rotate(15deg) scale(1.1); }
+        }
+
+        /* ================= 8 & 9. تصاویر آسمان ================= */
+        .star-map-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .star-map-img { width: 100%; max-width: 380px; border-radius: 4px; opacity: 0; margin-bottom: 25px; filter: grayscale(20%); transition: filter 2s ease; }
+        .star-map-img.show { animation: fadeIn 3s ease forwards; }
+
+        /* ================= 11. پایان تاریک ================= */
+        .pure-black-scene { color: #fff; text-align: center; }
+        .fade-text { opacity: 0; transition: opacity 2s ease; }
+
+    </style>
+</head>
+<body>
+
+    <div id="bg-effects">
+        <div class="aurora"></div>
+    </div>
+
+    <!-- SCENE 01: CASE FILE -->
+    <div class="scene active" id="scene-1">
+        <div class="container ui-card">
+            <span class="mono-tag">ARCHIVE ID: M × E</span>
+            <h1 style="letter-spacing: 3px; font-size: 1.6rem; margin-top: 5px;">CASE FILE: ELHAM</h1>
+            <p class="mono-tag" style="color: #fbbf24;">STATUS: MEMORY FRAGMENTS</p>
+            
+            <div style="margin: 35px 0 30px; padding-right: 15px; border-right: 2px solid #334155;">
+                <p style="font-size: 0.9rem; color: #94a3b8; margin: 0; text-align: justify; line-height: 1.8;">
+                    بخش بزرگی از چت‌ها و ویس‌های این ۱۱ سال دیگه در دسترس نیستن...<br>تلاش برای بازیابی بقایای پرونده.
+                </p>
+            </div>
+
+            <div class="scanner-wrap" id="scannerBtn">
+                <div class="mono-tag" id="scanText" style="margin-bottom: 15px;">برای احراز هویت لمس کنید و نگه دارید</div>
+                <div class="scanner-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
+                        <path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/>
+                        <path d="M8.5 22c-1.3-1.4-2.2-3.1-2.5-5.3"/>
+                        <path d="M12 22a10 10 0 0 0 9.8-7"/>
+                        <path d="M15.5 20a6 6 0 0 0 2.5-5.4"/>
+                        <path d="M18 12a6 6 0 0 0-11.8-1.5"/>
+                        <path d="M12 12v5"/>
+                        <path d="M12 7a5 5 0 0 0-4.9 6"/>
+                    </svg>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="scanFill"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCENE 02: RECOVERED FRAGMENTS -->
+    <div class="scene" id="scene-2">
+        <div class="container ui-card" style="border-color: rgba(255,255,255,0.04);">
+            <span class="mono-tag">RECOVERED FRAGMENTS</span>
+            <div class="type-text" id="tw-2" style="text-align: justify;"></div>
+            <button class="btn-next" id="btn-2" onclick="nextScene(3)">ادامه ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 03: TEHRAN ↔ ISFAHAN -->
+    <div class="scene" id="scene-3">
+        <div class="container ui-card center-text" style="background: transparent; border: none; box-shadow: none;">
+            <span class="mono-tag" style="letter-spacing: 3px;">TEHRAN ↔ ISFAHAN</span>
+            <div class="distance-display" id="distCounter">450 KM</div>
+            <div class="type-text center-text" id="tw-3"></div>
+            <button class="btn-next" id="btn-3" onclick="nextScene(4)">حالا بریم یکم خاطره بازی کنیم ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 04: MEMORY 01 - NOSE SURGERY -->
+    <div class="scene" id="scene-4">
+        <div class="container ui-card" style="background: rgba(10, 15, 25, 0.2); border: none;">
+            <span class="mono-tag" style="color: #cbd5e1; opacity: 0.5;">MEMORY 01</span>
+            <div class="type-text" id="tw-4" style="text-align: justify;"></div>
+            <button class="btn-next" id="btn-4" onclick="nextScene(5)">ورق زدن ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 05: MEMORY 02 - MOBARAKEH 65 -->
+    <div class="scene" id="scene-5">
+        <div class="container center-text">
+            <span class="mono-tag" style="opacity: 0.4;">MEMORY 02</span>
+            
+            <!-- Wrapper for text and laugh effect -->
+            <div class="mobarakeh-wrapper" id="mob-wrap">
+                <span class="laugh-emoji l1">😂</span>
+                <span class="laugh-emoji l2">😂</span>
+                <span class="laugh-emoji l3">😂</span>
+                <span class="laugh-emoji l4">😂</span>
+                <div class="mobarakeh-visual" id="mob-65">مبارکه — ۶۵</div>
+            </div>
+
+            <div class="type-text" id="tw-5" style="text-align: justify; padding: 0 10px;"></div>
+            <button class="btn-next" id="btn-5" onclick="nextScene(6)" style="border:none; opacity:0.6;">ورق زدن ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 06: MEMORY 03 - HAND -->
+    <div class="scene" id="scene-6">
+        <div class="container">
+            <span class="mono-tag" style="opacity: 0.3;">MEMORY 03</span>
+            <div class="type-text" id="tw-6" style="text-align: justify; padding: 0 15px; font-size: 1.05rem;"></div>
+            <button class="btn-next" id="btn-6" onclick="nextScene(7)" style="border:none; opacity:0.5;">ورق زدن ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 07: FIRST MEETING -->
+    <div class="scene" id="scene-7">
+        <div class="container center-text">
+            <span class="mono-tag" style="opacity: 0.2; letter-spacing: 4px;">FIRST MEETING</span>
+            <div class="type-text center-text" id="tw-7" style="font-size: 1.1rem; line-height: 2.2;"></div>
+            <button class="btn-next" id="btn-7" onclick="nextScene(8)" style="border:none; opacity:0.4;">مشاهده مختصات ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 08: SKY OF FIRST MEETING -->
+    <div class="scene" id="scene-8">
+        <div class="star-map-container">
+            <img src="star-map-tehran-story-farisfarooq.png" id="img-meet" class="star-map-img" alt="First Meeting Sky">
+            <div class="type-text center-text" id="tw-8" style="font-size: 0.9rem; color: #94a3b8; width: 80%;"></div>
+            <button class="btn-next" id="btn-8" onclick="nextScene(9)" style="width:auto; border:none; opacity:0.3; margin-top:20px;">ادامه ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 09: SKY OF HER BIRTH -->
+    <div class="scene" id="scene-9">
+        <div class="star-map-container">
+            <div class="type-text center-text" id="tw-9-pre" style="font-size: 1rem; color: #e2e8f0; width: 90%; margin-bottom: 25px;"></div>
+            <img src="star-map-isfahan-story-farisfarooq.png" id="img-birth" class="star-map-img" alt="Birth Sky" style="max-width: 320px;">
+            <div class="type-text center-text" id="tw-9-cap" style="font-size: 0.85rem; color: #64748b; margin-top:10px;"></div>
+            <button class="btn-next" id="btn-9" onclick="nextScene(10)" style="width:auto; border:none; opacity:0.3;">باز کردن نامه ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 10: BIRTHDAY LETTER -->
+    <div class="scene" id="scene-10">
+        <div class="container">
+            <div class="type-text" id="tw-10" style="text-align: justify; font-size: 1.1rem; color: #e2e8f0; line-height: 2.2; padding: 0 10px;"></div>
+            <button class="btn-next" id="btn-10" onclick="nextScene(11)" style="border:none; opacity:0.2; text-align:left; margin-top:40px;">بستن پرونده ⟵</button>
+        </div>
+    </div>
+
+    <!-- SCENE 11: ONE LAST FILE / ENDING / RESTART -->
+    <div class="scene pure-black-scene" id="scene-11">
+        <div class="container">
+            <div class="mono-tag fade-text" id="end-1" style="font-size: 1rem; letter-spacing: 2px; color: #94a3b8;">ONE LAST FILE FOUND</div>
+            <div class="mono-tag fade-text" id="end-2" style="font-size: 0.8rem; color: #ef4444; margin-top: 15px;">PRIVATE / ONLY FOR ELHAM</div>
+            
+            <div class="fade-text" id="end-3" style="margin-top: 60px; font-size: 1.1rem; line-height: 2.4; color: #cbd5e1; text-align: center;"></div>
+            
+            <div class="fade-text" id="end-4" style="margin-top: 50px; font-size: 1.2rem; line-height: 2; color: #fff; text-align: center;">تولدت مبارک الهامم با تمام وجود و از ته قلبم دوستت دارم بانوی زیبا ❤️</div>
+
+            <button class="btn-next" id="btn-restart" onclick="restartStory()" style="border: 1px solid rgba(255,255,255,0.1); width: 200px; margin: 60px auto 0;">شروع مجدد ⟲</button>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPT ================= -->
+    <script>
+        function initBackgroundEffects() {
+            const bg = document.getElementById('bg-effects');
+            
+            for(let i = 0; i < 80; i++) {
+                let star = document.createElement('div');
+                star.className = 'star';
+                let size = Math.random() * 2.5;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDuration = (Math.random() * 3 + 1.5) + 's';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                bg.appendChild(star);
+            }
+
+            // اضافه شدن قلب قرمز به لیست آیتم‌های ریزان
+            const leaves = ['🍂', '🍁', '🍃', '❤️'];
+            setInterval(() => {
+                let leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.textContent = leaves[Math.floor(Math.random() * leaves.length)];
+                leaf.style.left = Math.random() * 100 + '%';
+                
+                let duration = Math.random() * 6 + 8; 
+                leaf.style.animationDuration = duration + 's';
+                leaf.style.setProperty('--end-x', (Math.random() * 200 - 100) + 'px');
+                leaf.style.setProperty('--end-rot', (Math.random() * 360) + 'deg');
+                
+                bg.appendChild(leaf);
+                
+                setTimeout(() => { if(leaf && leaf.parentNode) leaf.remove(); }, duration * 1000);
+            }, 1000);
+        }
+
+        window.onload = initBackgroundEffects;
+
+        const texts = {
+            2: "خیلی چیزها از بین رفتن.\nشب‌هایی که ساعت‌ها حرف می‌زدیم، چت‌ها، ویس‌ها، آهنگ‌هایی که برای هم می‌فرستادیم...\nچیزهایی که یه زمانی کاملاً معمولی بودن اما حالا فقط بخشی از حافظه‌ان.\n\nولی بعضی چیزها هنوز یادم مونده.",
+            3: "روی نقشه حدود ۴۵۰ کیلومتر فاصله بود، اما بعد از سال‌ها بالاخره یک روز رسید که دیگه فقط از پشت صفحه با هم حرف نمی‌زدیم.",
+            4: "یادته برای عمل بینیت چقدر استرس داشتی و می‌ترسیدی؟ من کنارت نبودم، ولی سعی می‌کردم از همون راه دور آرومت کنم.\nبعد از عمل، وقتی عکست رو برام فرستادی... شاید برای تو فقط یه عکس بود، اما برای من این حس رو داشت که می‌خواستی حتی وقتی کنارت نیستم، یه جورایی حس کنم که اونجام.",
+            5: "دوران دانشگاه... یکی از رفیقات هم از مبارکه بود.\nو خب، نمی‌دونم چرا، ولی هنوز داستان «مبارکه — ۶۵» یادمه. 😂\n\nبعضی خاطره‌ها لازم نیست برای بقیه قابل فهم باشن؛ همین که خودمون می‌دونیم کافیه.",
+            6: "یادته موقع تزریق ژل چقدر استرس و ترس داشتی؟\nاون موقع که یواشکی دستت گرفتم حواسمم به مامانت بود نبینه 😂 باهات استرس گرفتم و منم نگرانت بودم ولی فقط میخواستم اون لحظه یه حس خوب بهت بدم که اروم شی (آرامش تو مهم ترین هدف من تو اون لحظه بود نه فقط اون لحظه در تمام این سال ها حال خوبت آرزوی قلبی من بوده وهست)",
+            7: "بعد این همه سال کنارت بودن از پشت گوشی بلاخره روزی که تموم عمرم منتظرش بودم فرا رسید و من چشم هام قفل چشمای زیبات بود و تو روبروم بودی حسی که نمیتونم با کلمات توصیفش کنم",
+            8: "آسمان تهران در شبی که بالاخره برای اولین بار چشم تو چشم شدیم.",
+            "9_pre": "این یکی مربوط به دیدارمون نیست...\nمربوط به خیلی قبل‌تره.\nروزی که تو به دنیا اومدی.",
+            "9_cap": "آسمان اصفهان در شبی که تو به دنیا اومدی.",
+            10: "الهام عزیزم،\n۱۱ سال از شروع این رفاقت گذشت. خیلی از چت‌ها و ویس‌ها پاک شدن و دیگه نداریمشون، اما خاطراتی که هنوز موندن و دیدارهایی که واقعاً اتفاق افتادن، همیشه هستن.\n\nخوشحالم که بخشی از این سال‌ها رو باهات تجربه کردم.\nآرزو می‌کنم سال جدید زندگیت پر از آرامش، خنده‌های از ته‌دل و اتفاق‌های فوق‌العاده برات باشه.",
+            11: "آشنایی با تو و داشتنت با تمام فاصله ها یکی از پایدارترین و زیباترین بخش های زندگی من بوده و هست"
+        };
+
+        function typeText(elId, txt, speed = 35, callback = null) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = "";
+            let i = 0;
+            function type() {
+                if (i < txt.length) {
+                    el.textContent += txt.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                } else if (callback) {
+                    setTimeout(callback, 500);
+                }
+            }
+            type();
+        }
+
+        function nextScene(num) {
+            document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+            let targetId = num > 11 ? 11 : num;
+            const target = document.getElementById('scene-' + targetId);
+            if(target) target.classList.add('active');
+            
+            document.body.style.background = `var(--bg-${num})`;
+
+            if(num === 2) {
+                setTimeout(() => typeText('tw-2', texts[2], 40, () => document.getElementById('btn-2').classList.add('show')), 800);
+            }
+            if(num === 3) playDistance();
+            if(num === 4) {
+                setTimeout(() => typeText('tw-4', texts[4], 45, () => document.getElementById('btn-4').classList.add('show')), 800);
+            }
+            if(num === 5) {
+                setTimeout(() => {
+                    const vis = document.getElementById('mob-65');
+                    const wrap = document.getElementById('mob-wrap');
+                    vis.style.animation = "fadeIn 2s ease forwards";
+                    // روشن کردن افکت اموجی‌های خنده
+                    wrap.classList.add('laugh-active');
+                    setTimeout(() => typeText('tw-5', texts[5], 40, () => document.getElementById('btn-5').classList.add('show')), 1500);
+                }, 800);
+            }
+            if(num === 6) {
+                setTimeout(() => typeText('tw-6', texts[6], 45, () => document.getElementById('btn-6').classList.add('show')), 800);
+            }
+            if(num === 7) {
+                setTimeout(() => typeText('tw-7', texts[7], 55, () => document.getElementById('btn-7').classList.add('show')), 800);
+            }
+            if(num === 8) {
+                setTimeout(() => {
+                    document.getElementById('img-meet').classList.add('show');
+                    setTimeout(() => typeText('tw-8', texts[8], 40, () => document.getElementById('btn-8').classList.add('show')), 2500);
+                }, 500);
+            }
+            if(num === 9) {
+                setTimeout(() => typeText('tw-9-pre', texts['9_pre'], 45, () => {
+                    document.getElementById('img-birth').classList.add('show');
+                    setTimeout(() => typeText('tw-9-cap', texts['9_cap'], 40, () => document.getElementById('btn-9').classList.add('show')), 2000);
+                }), 500);
+            }
+            if(num === 10) {
+                setTimeout(() => typeText('tw-10', texts[10], 40, () => document.getElementById('btn-10').classList.add('show')), 800);
+            }
+            if(num === 11) playEnding();
+        }
+
+        const scanBtn = document.getElementById('scannerBtn');
+        const scanFill = document.getElementById('scanFill');
+        const scanText = document.getElementById('scanText');
+        let scanInt; let prog = 0;
+
+        function startScan(e) {
+            if(e) e.preventDefault(); 
+            if (prog >= 100) return;
+            scanBtn.classList.add('scanner-active');
+            scanText.textContent = "در حال پردازش...";
+            
+            clearInterval(scanInt);
+            scanInt = setInterval(() => {
+                prog += 3; 
+                scanFill.style.width = prog + '%';
+                if(prog >= 100) {
+                    clearInterval(scanInt); 
+                    scanText.textContent = "ELHAM // ACCESS GRANTED";
+                    scanText.style.color = "#4ade80";
+                    setTimeout(() => nextScene(2), 1200);
+                }
+            }, 40);
+        }
+
+        function stopScan(e) { 
+            if(e) e.preventDefault();
+            clearInterval(scanInt); 
+            scanBtn.classList.remove('scanner-active'); 
+            if(prog < 100) { 
+                prog = 0; 
+                scanFill.style.width = '0%'; 
+                scanText.textContent = "برای احراز هویت لمس کنید و نگه دارید"; 
+                scanText.style.color = "#64748b"; 
+            } 
+        }
+
+        scanBtn.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+        scanBtn.addEventListener('touchstart', startScan, {passive: false});
+        scanBtn.addEventListener('touchend', stopScan);
+        scanBtn.addEventListener('touchcancel', stopScan);
+        scanBtn.addEventListener('mousedown', startScan);
+        scanBtn.addEventListener('mouseup', stopScan);
+        scanBtn.addEventListener('mouseleave', stopScan);
+
+        function playDistance() {
+            let dist = 450;
+            const distEl = document.getElementById('distCounter');
+            setTimeout(() => {
+                let dInt = setInterval(() => {
+                    dist -= 3;
+                    if(dist <= 0) { dist = 0; clearInterval(dInt); }
+                    distEl.textContent = dist + ' KM';
+                    if(dist === 0) {
+                        setTimeout(() => typeText('tw-3', texts[3], 45, () => document.getElementById('btn-3').classList.add('show')), 600);
+                    }
+                }, 15);
+            }, 1000);
+        }
+
+        function playEnding() {
+            const e1 = document.getElementById('end-1');
+            const e2 = document.getElementById('end-2');
+            const e3 = document.getElementById('end-3');
+            const e4 = document.getElementById('end-4');
+
+            setTimeout(() => { e1.style.opacity = 1; }, 1000);
+            setTimeout(() => { e2.style.opacity = 1; }, 2500);
+            
+            setTimeout(() => { 
+                e1.style.opacity = 0; e2.style.opacity = 0; 
+            }, 5500);
+
+            setTimeout(() => { 
+                typeText('end-3', texts[11], 50, () => {
+                    setTimeout(() => { 
+                        e4.style.opacity = 1; 
+                        document.getElementById('btn-restart').classList.add('show');
+                    }, 1500);
+                });
+                e3.style.opacity = 1; 
+            }, 7500);
+        }
+
+        function restartStory() {
+            prog = 0;
+            scanFill.style.width = '0%';
+            scanText.textContent = "برای احراز هویت لمس کنید و نگه دارید";
+            scanText.style.color = "#64748b";
+
+            document.querySelectorAll('.btn-next').forEach(b => b.classList.remove('show'));
+            document.querySelectorAll('.type-text').forEach(t => t.textContent = "");
+            
+            document.getElementById('end-1').style.opacity = 0;
+            document.getElementById('end-2').style.opacity = 0;
+            document.getElementById('end-3').style.opacity = 0;
+            document.getElementById('end-4').style.opacity = 0;
+            document.getElementById('end-3').textContent = "";
+
+            document.getElementById('img-meet').classList.remove('show');
+            document.getElementById('img-birth').classList.remove('show');
+            
+            // ریست کردن افکت خنده
+            document.getElementById('mob-wrap').classList.remove('laugh-active');
+            document.getElementById('mob-65').style.animation = 'none';
+            document.getElementById('mob-65').style.opacity = 0;
+            
+            document.getElementById('distCounter').textContent = "450 KM";
+
+            nextScene(1);
+        }
+    </script>
+</body>
+</html>
